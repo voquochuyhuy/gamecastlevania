@@ -1,2 +1,6 @@
 ﻿  Source.cpp
-  Project1.vcxproj -> C:\Users\User\source\repos\Project1\Debug\Project1.exe
+c:\users\user\documents\github\gamecastlevania\project1\project1\source.cpp(251): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\user\documents\github\gamecastlevania\project1\project1\source.cpp(274): warning C4018: '<': signed/unsigned mismatch
+c:\users\user\documents\github\gamecastlevania\project1\project1\source.cpp(279): warning C4018: '<': signed/unsigned mismatch
+c:\users\user\documents\github\gamecastlevania\project1\project1\source.cpp(338): warning C4018: '<': signed/unsigned mismatch
+  Project1.vcxproj -> C:\Users\User\Documents\GitHub\gamecastlevania\Project1\Debug\Project1.exe
