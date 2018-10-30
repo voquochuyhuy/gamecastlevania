@@ -3,6 +3,7 @@
 
 #include "Simon.h"
 #include "Game.h"
+#include "ViewPort.h"
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 580
 
@@ -38,8 +39,7 @@ void Simon::Update(DWORD dt, vector<LPGAMEOBJECT> *coObjects)
 		x += dx;
 		y += dy;
 	}
-	else if (x > SCREEN_WIDTH )
-		x = SCREEN_WIDTH - SIMON_BIG_BBOX_WIDTH;
+	
 	else if (x < 0)
 		x =  0;
 	else
@@ -119,6 +119,10 @@ void Simon::SetState(int state)
 	case SIMON_STATE_DIE:
 		vy = -SIMON_DIE_DEFLECT_SPEED;
 		break;
+	/*case SIMON_STATE_MOVE:
+		vx = SIMON_WALKING_SPEED;
+		nx = 1;
+		break;*/
 	}
 }
 

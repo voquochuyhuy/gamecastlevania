@@ -1,22 +1,4 @@
-/* =============================================================
-	INTRODUCTION TO GAME PROGRAMMING SE102
-
-	SAMPLE 04 - COLLISION
-
-	This sample illustrates how to:
-
-		1/ Implement SweptAABB algorithm between moving objects
-		2/ Implement a simple (yet effective) collision frame work
-
-	Key functions:
-		CGame::SweptAABB
-		CGameObject::SweptAABBEx
-		CGameObject::CalcPotentialCollisions
-		CGameObject::FilterCollision
-
-		CGameObject::GetBoundingBox
-
-================================================================ */
+﻿
 
 #include <windows.h>
 #include <d3d9.h>
@@ -30,28 +12,18 @@
 #include "Simon.h"
 #include "Ground.h"
 #include "ViewPort.h"
+#include"define.h"
+#include "Zombie.h"
+#include"BigFire.h"
+#include"Candle.h"
 
 
-#define WINDOW_CLASS_NAME L"Castlevania"
-#define MAIN_WINDOW_TITLE L"Castlevania"
-
-#define BACKGROUND_COLOR D3DCOLOR_XRGB(255, 255, 200)
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 580
-
-#define MAX_FRAME_RATE 120
-
-#define ID_TEX_SIMON 0
-#define ID_TEX_LV1 10
-#define ID_TEX_BRICK 20
-#define ID_TEX_SIMON_2 30
 
 CGame *game;
 
 Simon * simon;
-float h = 0;
-float t = 640;
-
+ViewPort *vp = new ViewPort(0, 0);
+static float h = 0, t = 0;
 vector<LPGAMEOBJECT> objects;
 
 class CSampleKeyHander : public CKeyEventHandler
@@ -87,7 +59,7 @@ void CSampleKeyHander::OnKeyUp(int KeyCode)
 
 void CSampleKeyHander::KeyState(BYTE *states)
 {
-	// disable control key when Mario die 
+	 
 	if (simon->GetState() == SIMON_STATE_DIE) return;
 	if (game->IsKeyDown(DIK_RIGHT))
 		simon->SetState(SIMON_STATE_WALKING_RIGHT);
@@ -121,11 +93,19 @@ void LoadResources()
 	CTextures * textures = CTextures::GetInstance();
 
 	textures->Add(ID_TEX_SIMON, L"Castlevania\\Simon_right.png", D3DCOLOR_XRGB(255, 0, 255));
-	textures->Add(ID_TEX_LV1, L"Castlevania\\lv1.png", D3DCOLOR_XRGB(176, 224, 248));
-	textures->Add(ID_TEX_BRICK, L"Castlevania\\ground.png", D3DCOLOR_XRGB(3, 26, 110));
 	textures->Add(ID_TEX_SIMON_2, L"Castlevania\\Simon_ver_editted.png", D3DCOLOR_XRGB(255, 0, 255));
+	textures->Add(ID_TEX_LV1, L"Castlevania\\lv1.png", D3DCOLOR_XRGB(176, 224, 248));
+	textures->Add(ID_TEX_LV1_2, L"Castlevania\\lv2.png", D3DCOLOR_XRGB(176, 224, 248));
+	textures->Add(ID_TEX_BRICK, L"Castlevania\\Brick.png", D3DCOLOR_XRGB(3, 26, 110));
+	textures->Add(ID_TEX_ZOMBIE, L"Castlevania\\ZOMBIE.png", D3DCOLOR_XRGB(255, 0, 255));
+	textures->Add(ID_TEX_PANTHER, L"Castlevania\\PANTHER.png", D3DCOLOR_XRGB(255, 0, 255));
+	textures->Add(ID_TEX_FIRE, L"Castlevania\\123.png", D3DCOLOR_XRGB(255, 0, 255));
+	textures->Add(ID_TEX_CANDLE, L"Castlevania\\1.png", D3DCOLOR_XRGB(255, 0, 255));
+	textures->Add(ID_TEX_WHIP, L"Castlevania\\WHIP.png", D3DCOLOR_XRGB(255, 0, 255));
 	
-	textures->Add(ID_TEX_BBOX, L"textures\\bbox.png", D3DCOLOR_XRGB(255, 255, 255));
+	
+	
+	
 
 
 	CSprites * sprites = CSprites::GetInstance();
@@ -133,21 +113,20 @@ void LoadResources()
 
 	LPDIRECT3DTEXTURE9 texSimon = textures->Get(ID_TEX_SIMON);
 
-	// big
-	sprites->Add(10001, 434, 0, 469, 64, texSimon);		// idle right
+	
+	sprites->Add(10001, 434, 0, 469, 64, texSimon);		// đứng im phải
 
-	sprites->Add(10002, 375, 0, 401, 64, texSimon);		// walk
+	sprites->Add(10002, 375, 0, 401, 64, texSimon);		// đi phải
 	sprites->Add(10003, 314, 0, 344, 64, texSimon);
 	LPDIRECT3DTEXTURE9 texSimon2 = textures->Get(ID_TEX_SIMON_2);
-	sprites->Add(10011, 11, 0, 47, 64, texSimon2);		// idle right
+	sprites->Add(10011, 11, 0, 47, 64, texSimon2);		// đứng im trái
 
-	sprites->Add(10012, 74, 0, 107, 64, texSimon2);		// walk
+	sprites->Add(10012, 74, 0, 107, 64, texSimon2);		// đi trái
 	sprites->Add(10013, 132, 0, 171, 64, texSimon2);
 
 	
-	sprites->Add(10099, 215, 120, 231, 135, texSimon);		// die 
-
-	// small
+	sprites->Add(10099, 180, 237, 240, 264, texSimon);		// chết 
+	
 	sprites->Add(10021, 247, 0, 259, 15, texSimon);			// idle small right
 	sprites->Add(10022, 275, 0, 291, 15, texSimon);			// walk 
 	sprites->Add(10023, 306, 0, 320, 15, texSimon);			// 
@@ -155,25 +134,38 @@ void LoadResources()
 	sprites->Add(10031, 187, 0, 198, 15, texSimon);			// idle small left
 
 	sprites->Add(10032, 155, 0, 170, 15, texSimon);			// walk
-	sprites->Add(10033, 125, 0, 139, 15, texSimon);			// 
-
+	sprites->Add(10033, 125, 0, 139, 15, texSimon);
+	
 
 	LPDIRECT3DTEXTURE9 texMisc = textures->Get(ID_TEX_BRICK);
-	sprites->Add(20001, 0, 0, 768, 32, texMisc);
+	sprites->Add(20001, 0, 0, 32, 32, texMisc);
 
-	/*LPDIRECT3DTEXTURE9 texEnemy = textures->Get(ID_TEX_ENEMY);
-	sprites->Add(30001, 5, 14, 21, 29, texEnemy);
-	sprites->Add(30002, 25, 14, 41, 29, texEnemy);*/
 
-	//sprites->Add(30003, 45, 21, 61, 29, texEnemy); // die sprite
+
+	LPDIRECT3DTEXTURE9 texEnemy = textures->Get(ID_TEX_ZOMBIE);
+	sprites->Add(30001, 0, 0, 32, 64, texEnemy); // đi trái 
+	sprites->Add(30002, 32, 0, 68, 64, texEnemy); 
+
+	LPDIRECT3DTEXTURE9 texEnemy1 = textures->Get(ID_TEX_PANTHER);
+	sprites->Add(30011, 0, 0, 50, 32, texEnemy1); // nằm chờ
+	sprites->Add(30012, 64, 0, 120, 32, texEnemy1);
+	sprites->Add(30013, 126, 0, 188, 32, texEnemy1);
+	sprites->Add(30014, 188, 0, 256, 32, texEnemy1);
+	
+	LPDIRECT3DTEXTURE9 texEnemy2 = textures->Get(ID_TEX_FIRE);
+	sprites->Add(40011, 0, 0, 32, 64, texEnemy2); 
+	sprites->Add(40012, 32, 0, 64, 64, texEnemy2);
+	
+
+	
 
 	LPANIMATION ani;
 
-	ani = new CAnimation(100);	// idle big right
+	ani = new CAnimation(100);	
 	ani->Add(10001);
 	animations->Add(400, ani);
 
-	ani = new CAnimation(100);	// idle big left
+	ani = new CAnimation(100);	
 	ani->Add(10011);
 	animations->Add(401, ani);
 
@@ -185,18 +177,19 @@ void LoadResources()
 	ani->Add(10031);
 	animations->Add(403, ani);
 
-	ani = new CAnimation(100);	// walk right big
+	
+
+	ani = new CAnimation(100);	
 	ani->Add(10001);
 	ani->Add(10002);
 	ani->Add(10003);
 	animations->Add(500, ani);
 
-	ani = new CAnimation(100);	// // walk left big
+	ani = new CAnimation(100);	
 	ani->Add(10011);
 	ani->Add(10012);
 	ani->Add(10013);
 	animations->Add(501, ani);
-
 	ani = new CAnimation(100);	// walk right small
 	ani->Add(10021);
 	ani->Add(10022);
@@ -209,48 +202,88 @@ void LoadResources()
 	ani->Add(10033);
 	animations->Add(503, ani);
 
+	
 
-	ani = new CAnimation(100);		// Mario die
+
+	ani = new CAnimation(100);		
 	ani->Add(10099);
 	animations->Add(599, ani);
 
 
 
-	ani = new CAnimation(100);		// brick
+	ani = new CAnimation(100);		
 	ani->Add(20001);
 	animations->Add(601, ani);
 
-	ani = new CAnimation(300);		// Goomba walk
+	ani = new CAnimation(100);
 	ani->Add(30001);
 	ani->Add(30002);
-	animations->Add(701, ani);
+	animations->Add(602, ani);
 
-	ani = new CAnimation(1000);		// Goomba dead
-	ani->Add(30003);
-	animations->Add(702, ani);
+	ani = new CAnimation(100);
+	ani->Add(40011);
+	ani->Add(40012);
+	animations->Add(700, ani);
+	
 
 	simon = new Simon();
-	simon->AddAnimation(400);		// idle right big
-	simon->AddAnimation(401);		// idle left big
+	simon->AddAnimation(400);		
+	simon->AddAnimation(401);
 	simon->AddAnimation(402);		// idle right small
-	simon->AddAnimation(403);		// idle left small
+	simon->AddAnimation(403);
+	
 
-	simon->AddAnimation(500);		// walk right big
-	simon->AddAnimation(501);		// walk left big
+	simon->AddAnimation(500);		
+	simon->AddAnimation(501);	
 	simon->AddAnimation(502);		// walk right small
-	simon->AddAnimation(503);		// walk left big
+	simon->AddAnimation(503);
+	
 
-	simon->AddAnimation(599);		// die
+	simon->AddAnimation(599);		
 	
 	simon->SetPosition(150, 327);
 	objects.push_back(simon);
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 50; i++)
 	{
 		Ground *ground = new Ground();
 		ground->AddAnimation(601);
-		ground->SetPosition(0 + i*768, 407);
+		ground->SetPosition(0 + i * 16.0f, 407);
 		objects.push_back(ground);
 	}
+	/*for (int i = 0; i < 2; i++)
+	{
+		Zombie *zombie = new Zombie();
+		zombie->AddAnimation(602);
+		zombie->SetPosition(0 + i *32, 350);
+		zombie->SetState(ZOMBIE_STATE_WALKING);
+		objects.push_back(zombie);
+	}
+	/*
+		BigFire *bigfire = new BigFire();
+		bigfire->AddAnimation(700);
+		bigfire->SetPosition(350, 350);
+		objects.push_back(bigfire);
+		BigFire *bigfire1 = new BigFire();
+		bigfire1->AddAnimation(700);
+		bigfire1->SetPosition(481, 350);
+		objects.push_back(bigfire1);
+		BigFire *bigfire2 = new BigFire();
+		bigfire2->AddAnimation(700);
+		bigfire2->SetPosition(672, 350);
+		objects.push_back(bigfire2);
+		BigFire *bigfire3 = new BigFire();
+		bigfire3->AddAnimation(700);
+		bigfire3->SetPosition(866, 350);
+		objects.push_back(bigfire3);
+		BigFire *bigfire4 = new BigFire();
+		bigfire4->AddAnimation(700);
+		bigfire4->SetPosition(1104, 350);
+		objects.push_back(bigfire4);
+		BigFire *bigfire5 = new BigFire();
+		bigfire5->AddAnimation(700);
+		bigfire5->SetPosition(1282, 350);
+		objects.push_back(bigfire5);*/
+	
 
 	
 
@@ -261,15 +294,11 @@ void LoadResources()
 
 }
 
-/*
-	Update world status for this frame
-	dt: time period between beginning of last frame and beginning of this frame
-*/
+
 void Update(DWORD dt)
 {
-	// We know that Mario is the first object in the list hence we won't add him into the colliable object list
-	// TO-DO: This is a "dirty" way, need a more organized way 
-	game->time = game->time + dt;
+	
+	
 	vector<LPGAMEOBJECT> coObjects;
 	for (int i = 1; i < objects.size(); i++)
 	{
@@ -282,9 +311,7 @@ void Update(DWORD dt)
 	}
 }
 
-/*
-	Render a frame
-*/
+
 void Render()
 {
 	LPDIRECT3DDEVICE9 d3ddv = game->GetDirect3DDevice();
@@ -302,41 +329,46 @@ void Render()
 		CTextures *textures = CTextures::GetInstance();
 		float x, y;
 		simon->GetPosition(x, y);// object world
-		//h t  view  in world
+		
 
 		
 		
-		/*if (x >= SCREEN_WIDTH / 2 && x < 1536-SCREEN_WIDTH/2 - SIMON_BIG_BBOX_WIDTH)
+		if (x >= SCREEN_WIDTH / 2 && x < 1536-SCREEN_WIDTH/2 - SIMON_BIG_BBOX_WIDTH)
 
 		{
-			h = h + simon->dx ;
-			t = t + simon->dy;
+			simon->ViewPortInWorld();
+			
+			
 			D3DXVECTOR3 p(0, 120, 0);
 			RECT r;
-			r.left = h;
+			r.left = x- SCREEN_WIDTH/2;
 			r.top = 36;
-			r.right = 640 + t;
-			r.bottom = 480;
-			// x =  object cordinate in camerra ?
-			//left right =camera cordinate in world h
-			// cordinate object in world x 
-			//x = w -o
+			r.right = 640 + x - SCREEN_WIDTH/2;
+			r.bottom = 480;			
 			spriteHandler->Draw(textures->Get(ID_TEX_LV1), &r, NULL, &p, D3DCOLOR_XRGB(255, 255, 255));
 			
+			simon->SetPositionInViewPort();
+			//simon->Render();
+			//simon->SetPosition(simon->z, simon->t);
+			//simon->SetPositioninViewPort(x - simon->viewportInWorld(x-SCREENWIDTH/2),407);
+			
 		}
-		else
-		{*/
-			D3DXVECTOR3 p(0, 120, 0);
-			RECT r;
-			r.left = 0;
-			r.top = 36;
-			r.right = 640;
-			r.bottom = 480;
-			spriteHandler->Draw(textures->Get(ID_TEX_LV1), &r, NULL, &p, D3DCOLOR_XRGB(255, 255, 255));
-		//}
-		//simon->SetPosition(x - h, 327);
+		
+		else if (x >= 1408 - SIMON_BIG_BBOX_WIDTH)
+		{
+			D3DXVECTOR3 u(0, 120, 0);
+			RECT y;
+			y.left = 0;
+			y.top = 32;
+			y.right = 640;
+			y.bottom = 480;
+			spriteHandler->Draw(textures->Get(ID_TEX_LV1_2), &y, NULL, &u, D3DCOLOR_XRGB(255, 255, 255));
+			
+		}
+		
 		for (int i = 0; i < objects.size(); i++)
 			objects[i]->Render();
+		
 		spriteHandler->End();
 		d3ddv->EndScene();
 	}
